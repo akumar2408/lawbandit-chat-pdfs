@@ -1,27 +1,25 @@
-// lib/embeddings.ts
-// Mock by default unless NEXT_PUBLIC_USE_MOCK=false
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK?.toLowerCase() !== 'false';
+import OpenAI from "openai";
 
-export async function embedTexts(texts: string[]): Promise<number[][]> {
-  if (USE_MOCK) {
-    // small 10-dim fake vectors for local testing
-    return texts.map(() => Array.from({ length: 10 }, () => Math.random()));
-  }
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
 
-  // Real embeddings only when mock is off
-  const OpenAI = (await import('openai')).default;
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-
-  const res = await client.embeddings.create({
-    model: 'text-embedding-3-small',
+// Embed a list of texts (returns one embedding per string)
+export async function embedTexts(texts: string[]) {
+  const response = await client.embeddings.create({
+    model: "text-embedding-3-small", // or "text-embedding-3-large"
     input: texts,
   });
 
-  return res.data.map((d) => d.embedding);
+  return response.data.map((d) => d.embedding);
 }
 
-// <-- add this helper so routes can embed a single string
-export async function embedOne(text: string): Promise<number[]> {
-  const [vec] = await embedTexts([text]);
-  return vec;
+// Embed a single string (helper)
+export async function embedOne(text: string) {
+  const response = await client.embeddings.create({
+    model: "text-embedding-3-small",
+    input: [text],
+  });
+
+  return response.data[0].embedding;
 }
