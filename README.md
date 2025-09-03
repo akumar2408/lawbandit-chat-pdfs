@@ -1,88 +1,87 @@
-# LawBandit – Chat with PDFs (Smarter RAG)
-Upload long case PDFs or scholarly articles and ask: **“On what page does this document mention _X_?”**  
-Answers include page numbers, short supporting quotes, and a brief *how-it-found-it* explanation.
+# 📚 LawBandit – Chat with PDFs
 
-> Built with **Next.js 14 + TypeScript + Node.js** and deploy-ready for **Vercel**.
+Upload case PDFs or long articles, then ask page-specific questions.  
+Answers include page numbers and supporting text snippets.  
+
+Deployed live on Vercel: 👉 [Live App](https://lawbandit-chat-pdfs.vercel.app)  
+GitHub repo: 👉 [Repo](https://github.com/akumar2408/lawbandit-chat-pdfs)
 
 ---
 
-## 🚀 Live Demo (after you deploy)
-- Vercel URL: _add after deploy_
+## 🚀 Features
+- Upload **legal PDFs or articles** directly in the browser.
+- Extracts and indexes **page-level text** for search and retrieval.
+- Ask natural language questions; answers come with **citations**.
+- Built with **TypeScript + Node.js + Next.js**.
+- Currently runs in **mock mode** for reliability (no API quota required).
+- Easily switchable to **real OpenAI embeddings + LLM** when API keys are available.
 
-## 🧠 Features
-- Upload one or more PDFs
-- Page-level indexing → **chunked embeddings with page numbers**
-- Ask questions and get **page-cited answers**
-- **“How I found it”**: concise explanation of retrieval (no chain-of-thought)
-- Show top matches with page numbers, scores, and snippets
-- Clean, readable code with comments and a small footprint
+---
 
-## 🗂️ Project Structure
-```
-app/
-  api/
-    upload/route.ts     # PDF → pages → chunks → embeddings → in-memory store
-    retrieve/route.ts   # question → embed → topK chunks
-    chat/route.ts       # question + retrieved → LLM JSON answer with citations
-  page.tsx              # main UI (upload + chat)
-  layout.tsx
-components/
-  Uploader.tsx          # PDF upload and indexing
-  Chat.tsx              # Q&A UI with answers
-  Sources.tsx           # sidebar with retrieved pages/snippets
-lib/
-  chunks.ts             # page chunking logic
-  embeddings.ts         # OpenAI embeddings helpers
-  llm.ts                # Chat completion with strict JSON & citations
-  session.ts            # cookie session helper
-  store.ts              # in-memory vector store + cosine similarity
-```
+## ⚙️ Setup Instructions
 
-## ⚙️ Setup
+### 1. Clone the repo
 ```bash
-# 1) Install deps
-npm i
-
-# 2) Add env
-cp .env.example .env.local
-# Fill in your OpenAI key:
-# OPENAI_API_KEY=sk-...
-
-# 3) Dev
+git clone https://github.com/akumar2408/lawbandit-chat-pdfs.git
+cd lawbandit-chat-pdfs
+2. Install dependencies
+bash
+Copy code
+npm install
+3. Run locally
+bash
+Copy code
 npm run dev
-```
+App will be available at: http://localhost:3000
 
-Open http://localhost:3000 and upload a PDF.
+4. Environment variables
+By default the app runs in mock mode (no API keys required).
 
-## ☁️ Deploy to Vercel
-1. Push this folder to a **public GitHub repo** (or import directly in Vercel).
-2. On Vercel, **New Project** → import repo.
-3. Add env var: `OPENAI_API_KEY` (Project → Settings → Environment Variables).
-4. Deploy. Done.
+If you want to use real OpenAI:
 
-> **Note**: The MVP uses an **in-memory store** (simple, fast). In serverless, memory is per instance; it persists for a while but not across cold starts. That’s fine for the bounty demo. For persistence, swap to Supabase pgvector or Vercel Postgres — the code is structured to make that an easy follow-on change.
+Create a .env.local file in the root.
 
-## 🧪 Judge Mode (what the reviewer asked for)
-- Use long cases or law review articles.
-- Ask: “On what page does this case mention _res judicata_?” or “Where is 'consideration' defined?”
-- The model returns:
-  - The **page number(s)** in the answer text.
-  - **Citations**: short quotes + page numbers.
-  - **Reasoning**: one sentence about how it found it (e.g., “keywords matched; top-ranked pages 14 and 22”).
+Add:
 
-## 🔒 Safety & Reasoning
-- The assistant **does not** reveal step-by-step chain-of-thought.
-- It provides concise reasoning + evidence via page citations.
+env
+Copy code
+OPENAI_API_KEY=sk-xxxxxxx
+NEXT_PUBLIC_USE_MOCK=false
+Restart the dev server or redeploy on Vercel.
 
-## 🧰 Notes & Trade-offs
-- **PDF parsing**: uses `pdf-parse` with a per-page delimiter trick to recover page texts. Works well for most PDFs; for scanned PDFs without OCR, use a pre-OCRed file.
-- **Chunking**: ~1500 chars w/ 200 overlap; adjust in `lib/chunks.ts` if needed.
-- **Embeddings**: `text-embedding-3-small` for cost/perf balance.
-- **LLM**: `gpt-4o-mini` with `response_format: json_object` so answers are strict JSON.
+🌐 Deployment (Vercel)
+This project is deployed on Vercel:
 
-## 🐛 Troubleshooting
-- _Build complains about pdf-parse_: keep `runtime = 'nodejs'` on API routes (already set).
-- _Answers without page numbers_: Ensure you uploaded the document and that it has extractable text (not just images).
+Mock mode = default (no keys required).
 
-## 📄 License
-MIT for this demo.
+To enable real OpenAI, set environment variables under
+Vercel → Project Settings → Environment Variables.
+
+🛠️ Explanation of Approach
+Architecture:
+
+Next.js App Router (/app/api/...) for backend APIs.
+
+Frontend components in React/TypeScript (Uploader, Chat, Sources).
+
+Utilities in /lib for chunking text, session handling, and storage.
+
+Retrieval flow:
+
+PDF uploaded → parsed into page-level text.
+
+Pages chunked for better semantic embedding.
+
+Embeddings generated (mock vectors in current deployment).
+
+Stored in session memory.
+
+User query retrieves top chunks, answers are synthesized.
+
+Mock vs Real OpenAI:
+
+Mock mode: Generates dummy embeddings/responses (no quota needed).
+
+Real mode: Uses OpenAI text-embedding-3-small + gpt-4o-mini.
+
+This design ensures judges can test the app without worrying about hitting OpenAI rate limits, but switching to real OpenAI is one env variable away.
