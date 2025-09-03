@@ -24,64 +24,62 @@ GitHub repo: 👉 [Repo](https://github.com/akumar2408/lawbandit-chat-pdfs)
 ```bash
 git clone https://github.com/akumar2408/lawbandit-chat-pdfs.git
 cd lawbandit-chat-pdfs
-2. Install dependencies
-bash
-Copy code
+```
+
+### 2. Install dependencies
+```bash
 npm install
-3. Run locally
-bash
-Copy code
+```
+
+### 3. Run locally
+```bash
 npm run dev
-App will be available at: http://localhost:3000
+```
+App will be available at: `http://localhost:3000`
 
-4. Environment variables
-By default the app runs in mock mode (no API keys required).
+### 4. Environment variables
+By default the app runs in **mock mode** (no API keys required).
 
-If you want to use real OpenAI:
+If you want to use **real OpenAI**:
+1. Create a `.env.local` file in the root.
+2. Add:
+   ```env
+   OPENAI_API_KEY=sk-xxxxxxx
+   NEXT_PUBLIC_USE_MOCK=false
+   ```
+3. Restart the dev server or redeploy on Vercel.
 
-Create a .env.local file in the root.
+---
 
-Add:
+## 🌐 Deployment (Vercel)
+This project is deployed on [Vercel](https://vercel.com):
 
-env
-Copy code
-OPENAI_API_KEY=sk-xxxxxxx
-NEXT_PUBLIC_USE_MOCK=false
-Restart the dev server or redeploy on Vercel.
+- Mock mode = **default** (no keys required).
+- To enable real OpenAI, set environment variables under  
+  **Vercel → Project Settings → Environment Variables**.
 
-🌐 Deployment (Vercel)
-This project is deployed on Vercel:
+---
 
-Mock mode = default (no keys required).
+## 🛠️ Explanation of Approach
+- **Architecture**:  
+  - Next.js App Router (`/app/api/...`) for backend APIs.  
+  - Frontend components in React/TypeScript (`Uploader`, `Chat`, `Sources`).  
+  - Utilities in `/lib` for chunking text, session handling, and storage.
 
-To enable real OpenAI, set environment variables under
-Vercel → Project Settings → Environment Variables.
+- **Retrieval flow**:  
+  1. PDF uploaded → parsed into page-level text.  
+  2. Pages chunked for better semantic embedding.  
+  3. Embeddings generated (mock vectors in current deployment).  
+  4. Stored in session memory.  
+  5. User query retrieves top chunks, answers are synthesized.  
 
-🛠️ Explanation of Approach
-Architecture:
-
-Next.js App Router (/app/api/...) for backend APIs.
-
-Frontend components in React/TypeScript (Uploader, Chat, Sources).
-
-Utilities in /lib for chunking text, session handling, and storage.
-
-Retrieval flow:
-
-PDF uploaded → parsed into page-level text.
-
-Pages chunked for better semantic embedding.
-
-Embeddings generated (mock vectors in current deployment).
-
-Stored in session memory.
-
-User query retrieves top chunks, answers are synthesized.
-
-Mock vs Real OpenAI:
-
-Mock mode: Generates dummy embeddings/responses (no quota needed).
-
-Real mode: Uses OpenAI text-embedding-3-small + gpt-4o-mini.
+- **Mock vs Real OpenAI**:  
+  - *Mock mode*: Generates dummy embeddings/responses (no quota needed).  
+  - *Real mode*: Uses OpenAI `text-embedding-3-small` + `gpt-4o-mini`.  
 
 This design ensures judges can test the app without worrying about hitting OpenAI rate limits, but switching to real OpenAI is one env variable away.
+
+---
+
+## 📄 License
+This project is for demonstration and internship submission purposes. 
