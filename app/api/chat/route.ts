@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
     const topK = 8;
     const retrieved = retrieve(sessionId, queryEmbedding, topK); // [{pageNum,text,score,...}]
 
-    const useOpenAI = process.env.USE_OPENAI === '1';
-    const hasKey = !!process.env.OPENAI_API_KEY;
+    const useOpenAI = (process.env.USE_OPENAI || '').trim() === '1';
+    const hasKey = !!(process.env.OPENAI_API_KEY || '').trim();
 
     if (useOpenAI && hasKey) {
       // 4) Ask the model to answer with citations
