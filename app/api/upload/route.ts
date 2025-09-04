@@ -9,32 +9,35 @@ import { getOrCreateSessionId } from '@/lib/session';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// ---------- NEW: sniff case page numbers on each PDF page ----------
+// ---------- NEW: infer case/reporter page numbers on each PDF page ----------
+/**
+ * Tries to read the *legal case* page numbers from page headers/footers.
+ * We keep it permissive and then smooth gaps by incrementing when possible.
+ */
 function inferCasePageNumbers(rawPages: { pageNum: number; text: string }[]) {
-  const headerTail = 250;     // first N chars
-  const footerTail = 250;     // last N chars
+  const headerTail = 250; // first N chars to scan
+  const footerTail = 250; // last N chars to scan
   const candidates: (number | null)[] = new Array(rawPages.length).fill(null);
 
-  // A small set of regexes we test in order
+  // Ordered set of regexes—we accept the first match we find in head/foot.
   const regexes: RegExp[] = [
     /\b\*?(\d{2,4})\*?\b/,               // 523 or *523 or 523*
-    /\b(?:Page|PAGE|p\.)\s*(\d{2,4})\b/, // Page 523  /  p. 523
+    /\b(?:Page|PAGE|p\.)\s*(\d{2,4})\b/, // "Page 523", "p. 523"
     /[\[(—-]\s*(\d{2,4})\s*[\])-—]/,     // (523)  [523]  — 523 —
-    /\b(\d{2,4})\b/,                     // last resort: a bare number
+    /\b(\d{2,4})\b/,                     // last resort: bare number
   ];
 
   for (let i = 0; i < rawPages.length; i++) {
     const t = rawPages[i].text || '';
     const head = t.slice(0, headerTail);
     const foot = t.slice(Math.max(0, t.length - footerTail));
-
     const zones = [head, foot];
+
     outer: for (const zone of zones) {
       for (const re of regexes) {
         const m = zone.match(re);
         if (m && m[1]) {
           const n = parseInt(m[1], 10);
-          // Filter out goofy numbers (too small or too large). Tune as needed.
           if (Number.isFinite(n) && n >= 1 && n <= 3000) {
             candidates[i] = n;
             break outer;
@@ -44,7 +47,7 @@ function inferCasePageNumbers(rawPages: { pageNum: number; text: string }[]) {
     }
   }
 
-  // Smooth sequence: if a page missed a marker but neighbors exist, infer by +1
+  // Simple smoothing: if we missed a page but have the previous, assume +1
   for (let i = 0; i < candidates.length; i++) {
     if (candidates[i] == null) {
       if (i > 0 && candidates[i - 1] != null) {
@@ -53,16 +56,15 @@ function inferCasePageNumbers(rawPages: { pageNum: number; text: string }[]) {
     }
   }
 
-  // Fallback: if *all* pages are null, do nothing (keep PDF indexes)
-  const any = candidates.some(v => v != null);
+  const any = candidates.some((v) => v != null);
 
   return rawPages.map((p, i) => {
     const casePage = any && candidates[i] != null ? (candidates[i] as number) : p.pageNum;
     return {
-      // NOTE: we replace pageNum with the *legal* page number.
+      // NOTE: we replace pageNum with the *legal* case page number.
       pageNum: casePage,
       text: p.text,
-      // You can keep the original PDF index if you extend your Chunk type later:
+      // If you ever want the original PDF sheet index, extend the type:
       // pdfPage: p.pageNum,
     };
   });
@@ -90,6 +92,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Empty or invalid file buffer' }, { status: 400 });
     }
 
+    // Lazy import for build safety on Vercel
     const { default: pdfParse } = await import('pdf-parse');
 
     const DELIM = '[[[LB_PAGE_BREAK]]]';
@@ -100,7 +103,7 @@ export async function POST(req: NextRequest) {
           .then(
             (tc: any) =>
               tc.items.map((it: any) => (typeof it?.str === 'string' ? it.str : '')).join(' ') +
-              `\n${DELIM}\n`,
+              `\n${DELIM}\n`
           ),
     });
 
@@ -109,19 +112,22 @@ export async function POST(req: NextRequest) {
       .split(DELIM)
       .map((s) => s.trim())
       .filter(Boolean)
-      .map((text, i) => ({ pageNum: i + 1, text })); // <-- PDF index initially
+      .map((text, i) => ({ pageNum: i + 1, text })); // start with raw PDF sheet index
 
     if (rawPages.length === 0) {
       return Response.json(
-        { error: 'No extractable text found in PDF. If this is a scanned PDF, please OCR it first.' },
-        { status: 400 },
+        {
+          error:
+            'No extractable text found in PDF. If this is a scanned PDF, please OCR it first.',
+        },
+        { status: 400 }
       );
     }
 
-    // ---------- NEW: swap PDF index with *legal* case page number ----------
+    // ---------- NEW: convert to *legal case* page numbers ----------
     const pages = inferCasePageNumbers(rawPages);
 
-    // Chunk + embed
+    // Chunk + embed using *legal* page numbers
     const docId = uuidv4();
     const chunks = chunkPages(pages, docId, 1500, 200);
     const vectors = await embedTexts(chunks.map((c) => `Page ${c.pageNum}: ${c.text}`));
@@ -135,6 +141,9 @@ export async function POST(req: NextRequest) {
     return Response.json({ docId, name, pages: pages.length }, { status: 200 });
   } catch (e: any) {
     console.error('[upload] error:', e);
-    return Response.json({ error: `Upload error: ${e?.message ?? String(e)}` }, { status: 500 });
+    return Response.json(
+      { error: `Upload error: ${e?.message ?? String(e)}` },
+      { status: 500 }
+    );
   }
 }
