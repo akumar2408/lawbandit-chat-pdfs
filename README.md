@@ -13,8 +13,6 @@ GitHub repo: 👉 [Repo](https://github.com/akumar2408/lawbandit-chat-pdfs)
 - Extracts and indexes **page-level text** for search and retrieval.
 - Ask natural language questions; answers come with **citations**.
 - Built with **TypeScript + Node.js + Next.js**.
-- Currently runs in **mock mode** for reliability (no API quota required).
-- Easily switchable to **real OpenAI embeddings + LLM** when API keys are available.
 
 ---
 
@@ -54,11 +52,6 @@ If you want to use **real OpenAI**:
 ## 🌐 Deployment (Vercel)
 This project is deployed on [Vercel](https://vercel.com):
 
-- Mock mode = **default** (no keys required).
-- To enable real OpenAI, set environment variables under  
-  **Vercel → Project Settings → Environment Variables**.
-
----
 
 ## 🛠️ Explanation of Approach
 - **Architecture**:  
@@ -72,12 +65,6 @@ This project is deployed on [Vercel](https://vercel.com):
   3. Embeddings generated (mock vectors in current deployment).  
   4. Stored in session memory.  
   5. User query retrieves top chunks, answers are synthesized.  
-
-- **Mock vs Real OpenAI**:  
-  - *Mock mode*: Generates dummy embeddings/responses (no quota needed).  
-  - *Real mode*: Uses OpenAI `text-embedding-3-small` + `gpt-4o-mini`.  
-
-This design ensures judges can test the app without worrying about hitting OpenAI rate limits, but switching to real OpenAI is one env variable away.
 
 ---
 
